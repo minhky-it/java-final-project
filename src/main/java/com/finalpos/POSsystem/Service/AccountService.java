@@ -30,7 +30,7 @@ import java.util.Optional;
 @Service
 public class AccountService implements AccountInterface {
     PasswordEncoder passwordEndcoder = new BCryptPasswordEncoder();
-    protected static Key JWT_Key = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+    public static Key JWT_Key = Keys.secretKeyFor(SignatureAlgorithm.HS512);
     @Autowired
     private FirebaseService firebase;
     @Value("${default.application.avatar}")

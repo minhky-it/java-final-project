@@ -1,10 +1,14 @@
 package com.finalpos.POSsystem.Controller;
 import com.finalpos.POSsystem.Entity.CustomerEntity;
 import com.finalpos.POSsystem.Entity.OrderEntity;
+import com.finalpos.POSsystem.Exception.FailedException;
+import com.finalpos.POSsystem.Exception.ResponseHandler;
 import com.finalpos.POSsystem.Repository.CustomerRepository;
 import com.finalpos.POSsystem.Entity.Package;
 import com.finalpos.POSsystem.Repository.OrderRepository;
+import com.finalpos.POSsystem.Service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,82 +22,33 @@ import java.util.Optional;
 @RequestMapping("/api/customers")
 public class CustomerController {
     @Autowired
-    CustomerRepository cusDb;
-
-    @Autowired
-    OrderRepository ordDb;
-
+    CustomerService service;
     @GetMapping("/")  // Đạt
-    private Package getAllCustomers(@RequestParam Optional<String> page){
+    private ResponseEntity<?> getAllCustomers(@RequestParam Optional<String> page){
         try {
-            int pageSize = 10;
-            int pageNumber = 1;
-            if(!page.isEmpty() && page.get() != "null") {
-                pageNumber = Integer.parseInt(page.get());
-            }
-            int skipAmount = (pageNumber - 1) * pageSize;
-            int totalUsers = (int) cusDb.count();
-            int totalPages = (int) Math.ceil((double) totalUsers / pageSize);
-
-            List<CustomerEntity> customerLists = cusDb.findAll();
-            List<CustomerEntity> customer = new ArrayList<>();
-
-            int endIdx = Math.min(skipAmount + pageSize, customerLists.size());
-            for (int i = skipAmount; i < endIdx; i++) {
-                customer.add(customerLists.get(i));
-            }
-            Object data = new Object() {
-                public final List<CustomerEntity> customers = customer;
-                public final int divider = totalPages;
-            };
-            return new Package(0, "success", data);
+            int pageNumber = Integer.parseInt(page.orElse("1"));
+            return ResponseHandler.builder("OK", service.customers(pageNumber, 10));
         }catch (Exception e){
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed to get customers: " + e.getMessage());
         }
     }
 
     @GetMapping("/{id}") // Đạt
-    private Package getCustomerById(@PathVariable("id") String id){
+    private ResponseEntity<?> getCustomerById(@PathVariable("id") String id){
         try {
-            CustomerEntity customer = cusDb.findCustomerById(id);
-            return new Package(0, "success", customer);
+            return ResponseHandler.builder("OK", service.detail(id));
         }catch (Exception e){
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed to get detail: " + e.getMessage());
         }
     }
 
     @GetMapping("/{id}/transactions") // Đạt
-    private Package getTransactionsByCustomerId(@PathVariable("id") String id, @RequestParam Optional<String> page){
+    private ResponseEntity<?> getTransactionsByCustomerId(@PathVariable("id") String id, @RequestParam Optional<String> page){
         try {
-            int pageSize = 10;
-            int pageNumber = 1;
-            if(!page.isEmpty() && page.get() != "null") {
-                pageNumber = Integer.parseInt(page.get());
-            }
-            int skipAmount = (pageNumber - 1) * pageSize;
-            int totalOrders = (int) ordDb.count();
-            int totalPages = (int) Math.ceil((double) totalOrders / pageSize);
-
-
-            List<OrderEntity> orderList = ordDb.findByCustomerId(id);
-            List<OrderEntity> order = new ArrayList<>();
-
-            // Check num of users in the last page
-            // It will continue() when page + 1 (skipAmount > size()) -> reduce run time
-            int endIdx = Math.min(skipAmount + pageSize, orderList.size());
-            for (int i = skipAmount; i < endIdx; i++) {
-                order.add(orderList.get(i));
-            }
-
-            CustomerEntity customerDB = cusDb.findCustomerById(id);
-            Object data = new Object() {
-                public final List<OrderEntity> transactions = order;
-                public final int divider = totalPages;
-                public final CustomerEntity customer = customerDB;
-            };
-            return new Package(0, "success", data);
+            int pageNumber = Integer.parseInt(page.orElse("1"));
+            return ResponseHandler.builder("OK", service.transactions(id,pageNumber,10));
         }catch (Exception e){
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed to get transactions: " + e.getMessage());
         }
     }
 }

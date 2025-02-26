@@ -2,8 +2,13 @@ package com.finalpos.POSsystem.Controller;
 
 import com.finalpos.POSsystem.Config.FirebaseService;
 import com.finalpos.POSsystem.Entity.ProductEntity;
+import com.finalpos.POSsystem.Exception.FailedException;
+import com.finalpos.POSsystem.Exception.ResponseHandler;
 import com.finalpos.POSsystem.Repository.ProductRepository;
+import com.finalpos.POSsystem.Service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import com.finalpos.POSsystem.Entity.Package;
@@ -18,45 +23,23 @@ import java.util.Optional;
 @ResponseBody
 @RequestMapping("/api/products")
 public class ProductsController {
-    @Autowired
-    private FirebaseService firebase;
 
     @Autowired
-    ProductRepository db;
+    ProductService service;
 
     @GetMapping("/")
-    public Package index(@RequestParam Optional<String> page) {
+    public ResponseEntity<?> index(@RequestParam Optional<String> page) {
         try {
-            int pageSize = 10;
-            int pageNumber = 1;
-            if(!page.isEmpty() && page.get() != "null") {
-                pageNumber = Integer.parseInt(page.get());
-            }
-            int skipAmount = (pageNumber - 1) * pageSize;
-            int totalUsers = (int) db.count();
-            int totalPages = (int) Math.ceil((double) totalUsers / pageSize);
-
-            List<ProductEntity> productModelList = db.findAll();
-            List<ProductEntity> product = new ArrayList<>();
-
-            int endIdx = Math.min(skipAmount + pageSize, productModelList.size());
-            for (int i = skipAmount; i < endIdx; i++) {
-                product.add(productModelList.get(i));
-            }
-
-            Object data = new Object() {
-                public final List<ProductEntity> products = product;
-                public final int divider = totalPages;
-            };
-            return new Package(0, "success", data);
+            int pageNumber = Integer.parseInt(page.orElse("1"));
+            return ResponseHandler.builder("OK", service.products(pageNumber, 10));
         }
         catch (Exception e) {
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed at product controller: " + e.getMessage());
         }
     }
 
     @PostMapping("/add")
-    public Package add(@RequestParam("barcode") String barcode,
+    public ResponseEntity<?> add(@RequestParam("barcode") String barcode,
                        @RequestParam("name") String name,
                        @RequestParam("description") String description,
                        @RequestParam("import_price") String import_price,
@@ -67,154 +50,58 @@ public class ProductsController {
                        ){
         try {
             if(barcode.isEmpty() || name.isEmpty() || description.isEmpty() || import_price.isEmpty() ||
-                    retail_price.isEmpty() || quantity.isEmpty() || category.isEmpty() || image.isEmpty()) {
-                return new Package(404, "Missing fields", null);
-            } else {
-                if(isNum(import_price) && isNum(import_price) && isNum(retail_price)) {
-                    if(Integer.valueOf(import_price.trim()) < 0 || Integer.valueOf(retail_price.trim()) < 0)
-                        return new Package(404, "Price should not be negative", null);
-                    else if(Integer.valueOf(quantity.trim()) < 0)
-                        return new Package(404, "Quantity should not be negative", null);
-                    else if(Integer.valueOf(import_price.trim()) > Integer.valueOf(retail_price.trim()))
-                        return new Package(404, "Import price should not be greater than retail price", null);
-                    else if(db.findByBarcode(barcode.trim()) != null)
-                        return new Package(404, "Barcode existed", null);
-                    else {
-                        String imageUrl = "";
-                        if (image.isPresent()) {
-                            imageUrl = firebase.uploadImage(image.get());
-                        }
-
-                        String creation_date = String.valueOf(java.time.LocalDateTime.now());
-                        ProductEntity result = create_product(barcode.trim(), name.trim(), Integer.valueOf(quantity.trim()), description.trim(),
-                                Double.valueOf(import_price.trim()), Double.valueOf(retail_price.trim()), imageUrl, category.trim(),
-                                creation_date, false);
-                        if(result != null) {
-                            return new Package(0, "Add product successfully", result);
-                        }
-                        return new Package(404, "Error saving product", null);
-                    }
-                } else {
-                    return new Package(404, "Quantity, import price and retail price should be a number", null);
-                }
-            }
+                    retail_price.isEmpty() || quantity.isEmpty() || category.isEmpty() || image.isEmpty())
+                return ResponseHandler.failed("Missing fields", HttpStatus.BAD_REQUEST);
+            return ResponseHandler.builder("OK", service.add(
+                    barcode, name, description, import_price, retail_price, quantity, category, image));
         }
         catch (Exception e){
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed at product controller: " + e.getMessage());
         }
     }
 
     @GetMapping("/{barcode}")
-    public Package get(@PathVariable("barcode") String barcode){
+    public ResponseEntity<?> get(@PathVariable("barcode") String barcode){
         try {
-            ProductEntity product = db.findByBarcode(barcode);
-
-            if (product != null) {
-                return new Package(0, "Success", product);
-            } else {
-                return new Package(404, "Product not found", null);
-            }
+           return ResponseHandler.builder("OK", service.getWBarcode(barcode));
         } catch (Exception e) {
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed at product controller: " + e.getMessage());
         }
     }
 
     @PutMapping("/{barcode}")
-    public Package update(@PathVariable("barcode") String barcode,
+    public ResponseEntity<?> update(@PathVariable("barcode") String barcode,
                           @RequestParam("name") String name,
                           @RequestParam("quantity") int quantity,
                           @RequestParam("description") String description) {
         try {
             if (name.isEmpty() || description.isEmpty()) {
-                return new Package(404, "Name and description cannot be empty", null);
+                return ResponseHandler.failed("Name and description cannot be empty", HttpStatus.BAD_REQUEST);
             }
 
-            ProductEntity existingProduct = db.findByBarcode(barcode);
-
-            if (existingProduct != null) {
-                existingProduct.setName(name);
-                existingProduct.setQuantity(quantity);
-                existingProduct.setDescription(description);
-
-                db.save(existingProduct);
-
-                return new Package(0, "Success", existingProduct);
-            } else {
-                return new Package(404, "Product not found", null);
-            }
+            return ResponseHandler.builder("OK", service.update(barcode, name, quantity, description));
         } catch (Exception e) {
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed at product controller: " + e.getMessage());
         }
     }
 
     @PatchMapping("/{barcode}")
-    public Package updatePatch(@PathVariable("barcode") String barcode,
+    public ResponseEntity<?> updatePatch(@PathVariable("barcode") String barcode,
                                @RequestParam("amount") int amount){
         try {
-            ProductEntity product = db.findByBarcode(barcode);
-
-            if (product != null) {
-                product.setQuantity(product.getQuantity()+amount);
-
-                db.save(product);
-
-                return new Package(0, "Update product successfully", product);
-            } else {
-                return new Package(404, "Product not found", null);
-            }
+            return ResponseHandler.builder("OK", service.updateAmount(barcode,amount));
         } catch (Exception e) {
-            return new Package(404, e.getMessage(), null);
+            throw new FailedException("Failed at product controller: " + e.getMessage());
         }
     }
 
     @DeleteMapping("/{barcode}")
-    public Package delete(@PathVariable("barcode") String barcode){
+    public ResponseEntity<?> delete(@PathVariable("barcode") String barcode){
         try {
-            ProductEntity product = db.findByBarcode(barcode);
-            if(product != null) {
-                if(product.getPurchase() == false) {
-                    ProductEntity result = db.removeProductModelByBarcode(barcode);
-                    return new Package(0, "Product deleted successfully", result);
-                } else {
-                    return new Package(2, "Product was purchased", null);
-                }
-            } else {
-                return new Package(404, "Product not found", null);
-            }
+            return ResponseHandler.builder("OK", service.delete(barcode));
         }
         catch (Exception e){
-            return new Package(404, e.getMessage(), null);
-        }
-    }
-
-    private ProductEntity create_product(String barcode, String name, int quantity, String description,
-                                         double import_price, double retail_price, String image,
-                                         String category, String creation_date, Boolean purchase) {
-        try {
-            ProductEntity product = new ProductEntity();
-            product.setBarcode(barcode);
-            product.setName(name);
-            product.setQuantity(quantity);
-            product.setDescription(description);
-            product.setImport_price(import_price);
-            product.setRetail_price(retail_price);
-            product.setImage(image);
-            product.setCategory(category);
-            product.setCreation_date(creation_date);
-            product.setPurchase(purchase);
-            db.save(product);
-            return product;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private boolean isNum(String input) {
-        try {
-            Integer.parseInt(input);
-            return true;
-        } catch (NumberFormatException e){
-            return false;
+            throw new FailedException("Failed at product service: " + e.getMessage());
         }
     }
 }
