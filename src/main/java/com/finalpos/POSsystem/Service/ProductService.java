@@ -9,10 +9,12 @@ import com.finalpos.POSsystem.Model.Mapstruct.ProductMapper;
 import com.finalpos.POSsystem.Repository.ProductRepository;
 import com.finalpos.POSsystem.Service.Interface.ProductInterface;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
+@Service
 public class ProductService implements ProductInterface {
     @Autowired
     private FirebaseService firebase;

@@ -22,13 +22,13 @@ export const Login = (props) => {
     
         axios.post('/api/account/login', {username, password}, {
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Type': 'application/json',
             }
         })
             .then(response => {
                 const res = response.data;
-                if (res.code === 0) {
-                    const token = res.data.token;
+                if (res.code === 200) {
+                    const token = res.data.access_token;
                     localStorage.setItem('token', token);
                     window.location.href = '/';
                 } else {

@@ -17,12 +17,13 @@ import com.finalpos.POSsystem.Repository.OrderRepository;
 import com.finalpos.POSsystem.Repository.UserRepository;
 import com.finalpos.POSsystem.Service.Interface.OrderInterface;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+@Service
 public class OrdersService implements OrderInterface {
     @Autowired
     OrderRepository orderDb;

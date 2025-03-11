@@ -15,15 +15,15 @@ function App() {
   
   	useEffect(() => {
 		// Check if a token exists in local storage
-		const token = localStorage.getItem('token');
+		const token = localStorage.getItem('access_token');
 		if (token) {
 			// Fetch user data
 			axios.get('/api/account/', { headers: { 'Authorization': token } })
 			.then(response => {
 				const res = response.data;
-				if (res.code !== 0) {
+				if (res.code !== 200) {
 					// Invalid token
-					localStorage.removeItem('token');
+					localStorage.removeItem('access_token');
 					setUser(null);
 					setLoading(false);
 					return;

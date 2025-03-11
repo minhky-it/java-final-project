@@ -18,13 +18,14 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static com.finalpos.POSsystem.Service.AccountService.JWT_Key;
-
+@Service
 public class POSService implements POSInterface {
     @Value("${default.application.avatar}")
     private String url;

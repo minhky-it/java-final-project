@@ -12,12 +12,13 @@ import com.finalpos.POSsystem.Service.Interface.AnalystInterface;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.finalpos.POSsystem.Service.AccountService.JWT_Key;
-
+@Service
 public class AnalystService implements AnalystInterface {
     @Autowired
     OrderRepository orderRepo;

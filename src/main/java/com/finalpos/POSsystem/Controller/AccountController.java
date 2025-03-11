@@ -1,28 +1,20 @@
 package com.finalpos.POSsystem.Controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.finalpos.POSsystem.Config.FirebaseService;
-import com.finalpos.POSsystem.Entity.UserEntity;
+
 import com.finalpos.POSsystem.Exception.FailedException;
 import com.finalpos.POSsystem.Exception.ResponseHandler;
 import com.finalpos.POSsystem.Model.DTO.UserDTO;
-import com.finalpos.POSsystem.Repository.UserRepository;
-import com.finalpos.POSsystem.Entity.Package;
 import com.finalpos.POSsystem.Service.AccountService;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import org.springframework.web.multipart.MultipartFile;
 
-import java.security.Key;
-import java.util.Date;
 import java.util.Optional;
 
 @Controller
@@ -32,8 +24,6 @@ import java.util.Optional;
 public class AccountController {
     @Autowired
     AccountService accountService;
-
-
 
     @PostMapping("/register_admin")
     public ResponseEntity<?> register_admin(@RequestBody(required = false) JsonNode body) {
@@ -61,7 +51,7 @@ public class AccountController {
             return ResponseHandler.builder("OK", accountService.login(username, password));
 
         } catch (Exception e) {
-            throw new FailedException(e.getMessage());
+            throw new FailedException("Failed at account controller: " + e.getMessage());
         }
     }
 

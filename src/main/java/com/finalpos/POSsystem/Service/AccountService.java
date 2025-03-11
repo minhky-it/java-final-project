@@ -3,25 +3,22 @@ package com.finalpos.POSsystem.Service;
 import com.finalpos.POSsystem.Config.FirebaseService;
 import com.finalpos.POSsystem.Entity.UserEntity;
 import com.finalpos.POSsystem.Exception.FailedException;
-import com.finalpos.POSsystem.Exception.ResponseHandler;
 import com.finalpos.POSsystem.Model.DTO.UserDTO;
 import com.finalpos.POSsystem.Model.Mapstruct.UserMapper;
 import com.finalpos.POSsystem.Repository.UserRepository;
 import com.finalpos.POSsystem.Service.Interface.AccountInterface;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import io.jsonwebtoken.*;
 
 import java.security.Key;
+import java.util.Date;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +34,7 @@ public class AccountService implements AccountInterface {
     private String defaultAvatar;
     @Autowired
     UserRepository db;
+
     UserMapper mapper = UserMapper.INSTANCE;
 
     @Override
@@ -46,7 +44,7 @@ public class AccountService implements AccountInterface {
             user.setRole("Administrator");
             user.setImage(defaultAvatar);
             user.setStatus("Active");
-            user.setPassword(passwordEndcoder.encode(user.getPassword()));
+            user.setPassword(passwordEndcoder.encode(password));
             user.setCreated_at(java.time.LocalDateTime.now());
             user.setUsername(username);
             user.setEmail(email);
@@ -55,7 +53,7 @@ public class AccountService implements AccountInterface {
 
             return mapper.toDTO(user);
         } catch (Exception e) {
-            throw new FailedException("Error in " + e.getMessage());
+            throw new FailedException("Error in account service: " + e.getMessage());
         }
     }
 
@@ -209,7 +207,7 @@ public class AccountService implements AccountInterface {
                 .claim("role", user.getRole())
                 .claim("status", user.getStatus())
                 .setExpiration(expirationTime)
-                .signWith(SignatureAlgorithm.HS256, JWT_Key)
+                .signWith(SignatureAlgorithm.HS512, JWT_Key)
                 .compact();
     }
 
@@ -217,7 +215,7 @@ public class AccountService implements AccountInterface {
         try {
             Jwts.parser().setSigningKey(JWT_Key).parseClaimsJws(token);
             return true;
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (Exception e) {
             return false;
         }
     }
